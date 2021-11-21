@@ -1,29 +1,36 @@
 let books = require('./books_data.json')
-
 const express = require('express');
 
 const app = express();
+function logger(req,res,next){
+    req.bb={"api_requested_by": "arpit"};
+    next();
+}
 app.use(express.json())
 
 //this will return all the books
-app.get('/', function(req,res){
-    res.send({api_requested_by: "arpit", books})
+app.get('/',logger,function(req,res){
+    req.bb.books=books;
+    res.send(req.bb);
 })
 
 //it will append it to the end of the books
 app.post("/books", (req,res)=>{ 
-    res.send(books); 
+    const newBooks=[...books,req.body];
+    res.send(newBooks);
 })
 
 //this will return user with a specific id
-app.get("/books/:id", (req,res)=>{
-   let newBook = books.filter(book => req.params.id == book.id)
-   res.send({api_requested_by: "arpit",book:newBook[0]})
+app.get("/books/:id", logger,(req,res)=>{
+    const newBooks = books.filter( ele => ele.id == req.params.id);
+    req.bb.book=newBooks;
+    req.bb["api_requested_by"]=newBooks[0].author;
+    res.send(req.bb);
 })
 
 //update those on the book that matched the id
 app.patch('/books/:id', (req,res)=>{
-     const newBook = books.map((book)=>{
+     const newBooks = books.map((book)=>{
           if(req.params.id == book.id)
           {
               if(req?.body?.author) {
@@ -32,18 +39,19 @@ app.patch('/books/:id', (req,res)=>{
               if(req?.body?.pages) {
                   book.pages = req.body.pages
               }
+              if(req?.body?.year) {
+                book.year = req.body.year
+              }
           }
           return book;
      })
-     res.send({api_requested_by: "arpit", newBook})
+     res.send(newBooks)
 })
 
 //delete the book that matched the id
-app.delete('/books/:id', (req,res)=>{
-   const newbooks = books.filter((book)=>
-       req.params.id != book.id
-   )
-   res.send({api_requested_by: "arpit",newbooks})
+app.delete('/books/:id', logger,(req,res)=>{
+    const newBooks = books.filter((ele) => ele.id != req.params.id);
+    res.send(newBooks)
 })
 
 app.listen(2345, ()=>{
